@@ -47,7 +47,7 @@ sub ip_is_ipv6 {
     return 0 if /::.*::/;     # reject multiple ::
 
     if ( /\./ ) {       # IPv6:IPv4
-      return 0 unless _ip_is_ipv4(pop @field);
+      return 0 unless ip_is_ipv4(pop @field);
     }
 
     foreach ( @field ) {

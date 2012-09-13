@@ -13,4 +13,5 @@ use Net::IP::Minimal qw[:PROC];
   my $ip = 'dead:beef:89ab:cdef:0123:4567:89ab:cdef';
   ok( ip_is_ipv6( $ip ), "$ip is IPv6" );
   is( ip_get_version( $ip ), 6, 'IPv6' );
+  ok( ip_is_ipv6( '::ff00:192.0.0.1' ), 'v6-encapsulated v4' );
 }
