@@ -24,41 +24,98 @@ sub ip_get_version {
 }
 
 sub ip_is_ipv4 {
-  my @field = split /\./, shift;
+    my $ip = shift;
 
-  return 0 if @field > 4;       # too many fields
-  return 0 if @field == 0;      # no fields at all
+    # Check for invalid chars
+    unless ($ip =~ m/^[\d\.]+$/) {
+        return 0;
+    }
 
-  foreach ( @field ) {
-    return 0 unless /./;      # reject if empty
-    return 0 if /[^0-9]/;     # reject non-digit
-    return 0 if $_ > 255;     # reject bad value
-  }
+    if ($ip =~ m/^\./) {
+        return 0;
+    }
 
-  return 1;
+    if ($ip =~ m/\.$/) {
+        return 0;
+    }
+
+    # Single Numbers are considered to be IPv4
+    if ($ip =~ m/^(\d+)$/ and $1 < 256) { return 1 }
+
+    # Count quads
+    my $n = ($ip =~ tr/\./\./);
+
+    # IPv4 must have from 1 to 4 quads
+    unless ($n >= 0 and $n < 4) {
+        return 0;
+    }
+
+    # Check for empty quads
+    if ($ip =~ m/\.\./) {
+        return 0;
+    }
+
+    foreach (split /\./, $ip) {
+
+        # Check for invalid quads
+        unless ($_ >= 0 and $_ < 256) {
+            return 0;
+        }
+    }
+    return 1;
 }
-
 
 sub ip_is_ipv6 {
-  for ( shift ) {
-    my @field = split /:/;      # split into fields
-    return 0 if (@field < 3) or (@field > 8);
+    my $ip = shift;
 
-    return 0 if /::.*::/;     # reject multiple ::
+    # Count octets
+    my $n = ($ip =~ tr/:/:/);
+    return 0 unless ($n > 0 and $n < 8);
 
-    if ( /\./ ) {       # IPv6:IPv4
-      return 0 unless ip_is_ipv4(pop @field);
+    # $k is a counter
+    my $k;
+
+    foreach (split /:/, $ip) {
+        $k++;
+
+        # Empty octet ?
+        next if ($_ eq '');
+
+        # Normal v6 octet ?
+        next if (/^[a-f\d]{1,4}$/i);
+
+        # Last octet - is it IPv4 ?
+        if ( ($k == $n + 1) && ip_is_ipv4($_) ) {
+            $n++; # ipv4 is two octets
+            next;
+        }
+
+        return 0;
     }
 
-    foreach ( @field ) {
-      next unless /./;    # skip ::
-      return 0 if /[^0-9a-f]/i; # reject non-hexdigit
-      return 0 if length $_ > 4;  # reject bad value
+    # Does the IP address start with : ?
+    if ($ip =~ m/^:[^:]/) {
+        return 0;
     }
-  }
-  return 1;
+
+    # Does the IP address finish with : ?
+    if ($ip =~ m/[^:]:$/) {
+        return 0;
+    }
+
+    # Does the IP address have more than one '::' pattern ?
+    if ($ip =~ s/:(?=:)/:/g > 1) {
+        return 0;
+    }
+
+    # number of octets
+    if ($n != 7 && $ip !~ /::/) {
+        return 0;
+    }
+
+    # valid IPv6 address
+    return 1;
 }
-
 
 qq[IP freely];
 
